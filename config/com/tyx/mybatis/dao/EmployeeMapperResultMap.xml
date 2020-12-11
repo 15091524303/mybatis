@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.tyx.mybatis.dao.EmployeeMapperResultMap">
+	
+	<!-- public Employee getEmployeeById(Integer id ); -->
+	<select id="getEmployeeById" resultMap="MyEmp">
+		select id ,last_name, email,gender from tbl_employee where id = #{id}
+	</select>
+	
+	<!-- 自定义映射
+		type: 最终结果集封装的类型
+		<id>: 完成主键列的映射
+			column: 指定结果集的列名
+			property:指定对象的属性名
+		<result>:完成普通列的映射
+	 -->
+	 <!-- 
+	 	    id    last_name        email         gender    
+  			1005     玛利亚老师            mly@sina.com         0        
+	  -->
+	<resultMap type="com.tyx.mybatis.beans.Employee" id="MyEmp">
+		<id column="id" property="id"/>
+		
+		<result column="last_name" property="lastName"/>
+		<result column="email" property="email"/>
+		<result column="gender" property="gender"/>
+	</resultMap>
+	
+	
+	<!-- 
+		需求: 查询员工对象， 并且查询员工所在 的部门信息. 
+	 -->
+	 <!-- public Employee getEmpAndDept(Integer id ); -->
+	 <select id="getEmpAndDept" resultMap="myEmpAndDept">
+	 	SELECT e.id eid ,  e.last_name, e.email,e.gender  , d.id did , d.dept_name 
+		 FROM  tbl_employee  e  , tbl_dept  d
+		 WHERE e.d_id = d.id  AND e.id = #{id}
+	 </select>
+	 <!-- 
+	 	   eid    last_name        email          gender     did  dept_name  
+ 		   1005        玛利亚老师              mly@sina.com         0         4       人事部  
+	  -->
+	 <resultMap type="com.tyx.mybatis.beans.Employee" id="myEmpAndDept">
+	 	<id column="eid" property="id"/>
+	 	<result column="last_name" property="lastName"/>
+	 	<result column="email" property="email"/>
+	 	<result column="gender" property="gender"/>
+	 	<!-- 级联 
+	 	<result column="did" property="dept.id"/>
+	 	<result column="dept_name" property="dept.departmentName"/>
+	 	-->
+	 	<!-- 
+	 		association: 完成关联、联合属性的映射
+	 			property: 指定联合属性
+	 			javaType: 指定联合属性的类型
+	 	 -->
+	 	<association property="dept" javaType="com.tyx.mybatis.beans.Department">
+	 		<id column="did" property="id" />
+	 		<result column="dept_name" property="departmentName"/>
+	 	</association>
+	 </resultMap>
+	 <!-- 
+	 	association 使用分步查询:
+	 	需求:  查询员工信息并且查询员工所在的部门信息. 
+	 		  1. 先根据员工的id查询员工信息
+	 		  2. 使用外键 d_id查询部门信息
+	  -->
+	  
+	  <!-- public Employee getEmpAndDeptStep(Integer id ); -->
+	  <select id="getEmpAndDeptStep" resultMap="myEmpAndDeptStep">
+	  	select id, last_name, email,gender ,d_id  from tbl_employee where id = #{id}
+	  </select>
+	  <resultMap type="com.tyx.mybatis.beans.Employee" id="myEmpAndDeptStep">
+	  	<id column="id" property="id"/>
+	  	<result column="last_name" property="lastName"/>
+	  	<result column="email" property="email"/>
+	  	<result column="gender" property="gender"/>
+	  	<!-- 分步查询 -->
+	  	<association property="dept" 
+	  			select="com.tyx.mybatis.dao.DepartmentMapperResultMap.getDeptById"
+	  			column="{did=d_id}" fetchType="eager">
+	  	</association>
+	  
+	  </resultMap>
+	  
+	  <!-- association 分步查询使用延迟加载/懒加载:
+	  		在全局配置文件中加上两个settings设置: 
+	  		<setting name="lazyLoadingEnabled" value="true"/>
+			<setting name="aggressiveLazyLoading" value="false"/>	
+	   -->
+	   <!-- public List<Employee>  getEmpsByDid(Integer did ); -->
+	   <select id="getEmpsByDid" resultType="com.tyx.mybatis.beans.Employee">
+	   	<include refid="selectEmployeeSQL"></include> from tbl_employee where d_id = #{did}
+	   </select>
+	
+	<!-- 抽取可重用的SQL片段 -->
+	<sql id="selectEmployeeSQL">
+		select id ,last_name,email,gender
+	</sql>
+	
+	
+</mapper>

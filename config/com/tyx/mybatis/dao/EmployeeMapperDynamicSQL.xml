@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.tyx.mybatis.dao.EmployeeMapperDynamicSQL">
+	
+	<!-- public List<Employee>  getEmpsByConditionIfWhere(Employee Condition); -->
+	<select id="getEmpsByConditionIfWhere" resultType="com.tyx.mybatis.beans.Employee">
+		
+		select id, last_name, email, gender 
+		from tbl_employee 
+		<!-- where 1=1 -->
+		<where> <!-- 在SQL语句中提供WHERE关键字，  并且要解决第一个出现的and 或者是 or的问题 -->
+			<if test="id!=null">
+				and id = #{id }
+			</if>
+			<if test="lastName!=null&amp;&amp;lastName!=&quot;&quot;">
+				and  last_name = #{lastName}
+			</if>
+			<if test="email!=null and email.trim()!=''">
+				and  email = #{email}
+			</if>
+			<if test="gender==0 or gender==1">
+				and  gender = #{gender}
+			</if>
+		</where>
+	</select>
+	
+	<!-- public List<Employee>  getEmpsByConditionTrim(Employee Condition); -->
+	<select id="getEmpsByConditionTrim" resultType="com.tyx.mybatis.beans.Employee">
+		
+		select id, last_name, email, gender 
+		from tbl_employee 
+		<!-- 
+			prefix:  添加一个前缀
+			prefixOverrides: 覆盖/去掉一个前缀
+			suffxi:  添加一个后缀
+			suffixOverrides: 覆盖/去掉一个后缀
+		 -->
+		<trim prefix="where"   suffixOverrides="and|or">
+			<if test="id!=null">
+				 id = #{id } and 
+			</if>
+			<if test="lastName!=null&amp;&amp;lastName!=&quot;&quot;">
+				last_name = #{lastName} and
+			</if>
+			<if test="email!=null and email.trim()!=''">
+				email = #{email} and
+			</if>
+			<if test="gender==0 or gender==1">
+				gender = #{gender}
+			</if>
+		</trim>
+	</select>
+	
+	
+	<!-- public void  updateEmpByConditionSet(Employee Condition); -->
+	<update id="updateEmpByConditionSet" >
+		update tbl_employee 
+		<set>
+			<if test="lastName!=null">
+				last_name = #{lastName} ,
+			</if>
+			<if test="email!=null">
+				email = #{email} ,
+			</if>
+			<if test="gender==0 or gender==1">
+				gender = #{gender} 
+			</if>
+		</set>
+		where id = #{id }
+	</update>
+	
+	<!-- public List<Employee>  getEmpsByConditionChoose(Employee Condition); -->
+	<select id="getEmpsByConditionChoose" resultType="com.tyx.mybatis.beans.Employee">
+		select id ,last_name, email, gender  
+		from tbl_employee
+		where 
+		<choose>
+			<when test="id!=null">
+				id= #{id}
+			</when>
+			<when test="lastName!=null">
+				last_name = #{lastName}
+			</when>
+			<when test="email!=null">
+				email = #{email}
+			</when>
+			<otherwise>
+				gender = 0 
+			</otherwise>
+		</choose>
+	</select>
+	
+	<!-- public List<Employee>  getEmpsByIds(@Param("ids")List<Integer> ids ); -->
+	<select id="getEmpsByIds" resultType="com.tyx.mybatis.beans.Employee">
+		<!-- 
+			select * from tbl_employee where id in(?,?,?);
+			select * from tbl_employee where id = ?  or id = ?  or id = ? ...
+		 -->
+		 <!-- 
+		 	foreach：
+		 		collection:指定要迭代的集合
+		 		item: 当前从集合中迭代出的元素
+		 		open: 指定一个开始字符
+		 		close:指定一个结束字符
+		 		separator: 元素与元素之间的分隔符
+		  -->
+		 
+		 select id ,last_name ,email, gender from  tbl_employee 
+		 where id  in
+		 <foreach collection="ids" item="currId" open=" (" close=")" separator=",">
+		 		#{currId}
+		 </foreach>
+	</select>
+	
+	
+	<!-- 
+		public void addEmps(@Param("emps")List<Employee> emps );
+		
+		添加:insert into tbl_employee(x,x,x) values(?,?,?),(?,?,?),(?,?,?)
+		删除:delete from tbl_employee where id in(?,?,?)
+		
+		修改: update tbl_employee set  last_name = #{lastName} ...where id = #{id};
+			 update tbl_employee set  last_name = #{lastName} ...where id = #{id};
+			 update tbl_employee set  last_name = #{lastName} ...where id = #{id};
+		默认情况下， JDBCB不允许将多条SQL通过;拼成一个字符串。 
+		可以在连接的url后面加上一个参数:  allowMultiQueries=true
+	 -->
+	<insert id="addEmps">
+		insert into tbl_employee(last_name, email,gender ) values 
+		<foreach collection="emps" item="emp" separator=",">
+			(#{emp.lastName},#{emp.email},#{emp.gender})
+		</foreach>
+	</insert>
+	
+</mapper>
